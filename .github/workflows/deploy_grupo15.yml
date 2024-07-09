@@ -28,11 +28,11 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        aws-region: us-east-1  # Asegúrate de que esta región coincida con tus recursos
 
     - name: Install Docker on EC2
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@3.90.12.10 <<EOF
+        ssh -o StrictHostKeyChecking=no ubuntu@54.162.199.245 <<EOF
         sudo apt-get update
         sudo apt-get install -y docker.io
         sudo usermod -aG docker ubuntu || true
@@ -40,11 +40,11 @@ jobs:
 
     - name: Copy files to EC2
       run: |
-        scp -o StrictHostKeyChecking=no -r . ubuntu@3.90.12.10:/home/ubuntu/
+        scp -o StrictHostKeyChecking=no -r . ubuntu@54.162.199.245:/home/ubuntu/
 
     - name: Deploy with Docker Compose
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@3.90.12.10 <<EOF
+        ssh -o StrictHostKeyChecking=no ubuntu@54.162.199.245 <<EOF
         cd /home/ubuntu/
         sudo docker-compose up -d --build
         EOF
