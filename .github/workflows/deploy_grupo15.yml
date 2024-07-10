@@ -13,6 +13,35 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Set up JDK 17
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: '17'
+
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Build holamundo-micro
+      run: |
+        cd holamundo-micro
+        mvn clean package
+
+    - name: Build hora-micro
+      run: |
+        cd hora-micro
+        mvn clean package
+
+    - name: Build spider-micro
+      run: |
+        cd spider-micro
+        mvn clean package
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
@@ -24,17 +53,17 @@ jobs:
 
     - name: Build and push holamundo-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile holamundo-micro
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest
 
     - name: Build and push hora-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile hora-micro
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest
 
     - name: Build and push spider-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile spider-micro
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest
 
     - name: Configure AWS credentials
