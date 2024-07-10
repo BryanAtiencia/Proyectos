@@ -13,38 +13,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Install AWS CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y awscli
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1  # Asegúrate de que esta región coincida con tus recursos
+        aws-region: us-east-2
 
-    - name: Install Docker on EC2
-      run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@54.162.199.245 <<EOF
-        sudo apt-get update
-        sudo apt-get install -y docker.io
-        sudo usermod -aG docker ubuntu || true
-        EOF
+    - name: Copy files via SCP
+      uses: appleboy/scp-action@v0.1.2
+      with:
+        host: ${{ secrets.EC2_INSTANCE_IP }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "."
+        target: "~/app"
 
-    - name: Copy files to EC2
-      run: |
-        scp -o StrictHostKeyChecking=no -r . ubuntu@54.162.199.245:/home/ubuntu/
-
-    - name: Deploy with Docker Compose
-      run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@54.162.199.245 <<EOF
-        cd /home/ubuntu/
-        sudo docker-compose up -d --build
-        EOF
+    - name: Deploy application via SSH
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.EC2_INSTANCE_IP }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io docker-compose
+          cd ~/app
+          sudo docker-compose down
+          sudo docker-compose up -d --build
