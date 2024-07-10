@@ -1,4 +1,4 @@
-name: Deploy
+name: CI/CD Pipeline
 
 on:
   push:
@@ -22,10 +22,20 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push Docker image to DockerHub
+    - name: Build and push holamundo-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/your-repo:latest .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/your-repo:latest
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest
+
+    - name: Build and push hora-micro to DockerHub
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest
+
+    - name: Build and push spider-micro to DockerHub
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -38,17 +48,20 @@ jobs:
       run: |
         aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-    - name: Pull image from DockerHub
+    - name: Tag and push holamundo-micro to ECR
       run: |
-        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/your-repo:latest
+        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
 
-    - name: Tag Docker image for ECR
+    - name: Tag and push hora-micro to ECR
       run: |
-        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/your-repo:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
 
-    - name: Push Docker image to ECR
+    - name: Tag and push spider-micro to ECR
       run: |
-        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
 
   deploy:
     needs: build-and-push
@@ -66,7 +79,7 @@ jobs:
         key: ${{ secrets.AWS_EC2_KEY }}
         script: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-          docker stop your_container_name || true
-          docker rm your_container_name || true
-          docker run -d --name your_container_name -p 80:80 ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
+          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
+          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
+          docker-compose -f docker-compose.yml up -d --remove-orphans
