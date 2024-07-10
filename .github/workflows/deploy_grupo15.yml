@@ -1,4 +1,4 @@
-name: Deploy
+name: CI/CD Pipeline
 
 on:
   push:
@@ -31,16 +31,19 @@ jobs:
       run: |
         cd holamundo-micro
         mvn clean package
+        ls -al target
 
     - name: Build hora-micro
       run: |
         cd hora-micro
         mvn clean package
+        ls -al target
 
     - name: Build spider-micro
       run: |
         cd spider-micro
         mvn clean package
+        ls -al target
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
