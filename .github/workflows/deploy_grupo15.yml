@@ -27,23 +27,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - name: Build holamundo-micro
+    - name: Build microservices
       run: |
-        cd holamundo-micro
-        mvn clean package
-        ls -al target
-
-    - name: Build hora-micro
-      run: |
-        cd hora-micro
-        mvn clean package
-        ls -al target
-
-    - name: Build spider-micro
-      run: |
-        cd spider-micro
-        mvn clean package
-        ls -al target
+        mvn -f holamundo-micro/pom.xml clean package
+        mvn -f hora-micro/pom.xml clean package
+        mvn -f spider-micro/pom.xml clean package
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -54,20 +42,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push holamundo-micro to DockerHub
+    - name: Build and push Docker images to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest
-
-    - name: Build and push hora-micro to DockerHub
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest
-
-    - name: Build and push spider-micro to DockerHub
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest
+        docker-compose -f docker-compose.yml build
+        docker-compose -f docker-compose.yml push
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -80,20 +58,13 @@ jobs:
       run: |
         aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-    - name: Tag and push holamundo-micro to ECR
+    - name: Tag and push Docker images to ECR
       run: |
-        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
-        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
-
-    - name: Tag and push hora-micro to ECR
-      run: |
-        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
-        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
-
-    - name: Tag and push spider-micro to ECR
-      run: |
-        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
-        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
+        services=("holamundo-micro" "hora-micro" "spider-micro")
+        for service in "${services[@]}"; do
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/${service}:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/${service}:latest
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/${service}:latest
+        done
 
   deploy:
     needs: build-and-push
@@ -111,7 +82,5 @@ jobs:
         key: ${{ secrets.AWS_EC2_KEY }}
         script: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/holamundo-micro:latest
-          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/hora-micro:latest
-          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}/spider-micro:latest
+          docker-compose -f docker-compose.yml pull
           docker-compose -f docker-compose.yml up -d --remove-orphans
