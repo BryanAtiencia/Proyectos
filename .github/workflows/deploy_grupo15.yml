@@ -24,17 +24,17 @@ jobs:
 
     - name: Build and push holamundo-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile .
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest -f holamundo-micro/Dockerfile holamundo-micro
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/holamundo-micro:latest
 
     - name: Build and push hora-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile .
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest -f hora-micro/Dockerfile hora-micro
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/hora-micro:latest
 
     - name: Build and push spider-micro to DockerHub
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile .
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest -f spider-micro/Dockerfile spider-micro
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/spider-micro:latest
 
     - name: Configure AWS credentials
