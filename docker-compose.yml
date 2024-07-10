@@ -23,3 +23,19 @@ services:
     ports:
       - "8083:8080"
     container_name: horamicro_container
+  
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8080"
+    container_name: product_service_container
+
+  email-service:
+    build:
+      context: ./email-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8080"
+    container_name: email_service_container
